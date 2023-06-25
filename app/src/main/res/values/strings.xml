@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Contact Us</string>
+
+    <!-- Admob -->
+    <string name="admob_unit_id">ca-app-pub-4541063798492496~6134709371</string>
+    <string name="admob_app_open_ad_unit_id">ca-app-pub-4541063798492496/9654888656</string>
+    <string name="admob_banner_ad_unit_id">ca-app-pub-4541063798492496/3093349734</string>
+
+    <string name="internet_connection_issues">Internet Connection no found. Try again later.</string>
+    <string name="splash_activity_text" translatable="false">CONTACT US</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="main_information">Main Information</string>
+    <string name="sub_information">Sub Information</string>
+    <string name="first_name">First Name</string>
+    <string name="email">Email</string>
+    <string name="phone">Phone</string>
+    <string name="last_name">Last Name</string>
+    <string name="back_pressed">Press back again to close this app</string>
+    <string name="skip"><![CDATA[Skip >>>]]></string>
+
+    <string name="contact_first_name_empty">First Name cannot be Empty.</string>
+    <string name="contact_last_name_empty">Last Name cannot be Empty.</string>
+    <string name="contact_email_invalid">Email is invalid.</string>
+    <string name="contact_update_success">Contact updated.</string>
+    <string name="contact_update_failed">Contact updated fail try again later.</string>
+    <string name="contact_added_success">Contact added.</string>
+    <string name="contact_added_failed">Contact added fail try again later.</string>
+</resources>
