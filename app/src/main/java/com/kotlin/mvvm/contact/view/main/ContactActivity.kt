@@ -29,7 +29,7 @@ class ContactActivity : AppCompatActivity() {
     private var originalContactList = ArrayList<Contact>() // ArrayList
     private lateinit var contactAdapter: ContactAdapter
 
-    var backPressedTime: Long = 0
+    private var backPressedTime: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
