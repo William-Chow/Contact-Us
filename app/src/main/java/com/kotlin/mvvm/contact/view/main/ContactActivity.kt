@@ -96,6 +96,7 @@ class ContactActivity : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        super.onBackPressed()
         if (backPressedTime + 3000 > System.currentTimeMillis()) {
             onBackPressedDispatcher.onBackPressed()
         } else {

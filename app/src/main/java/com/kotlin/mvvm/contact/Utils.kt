@@ -6,10 +6,12 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.kotlin.mvvm.contact.model.Contact
 import java.io.IOException
 import java.util.regex.Pattern
+
 
 class Utils {
 
@@ -67,7 +69,7 @@ class Utils {
         fun retrieveBackDataFromJson(context: Context): List<Contact> {
             val jsonFileString = getJsonDataFromAsset(context, "data.json")
             val gson = Gson()
-            val listContactType = object : TypeToken<List<Contact>>() {}.type
+            val listContactType = object : TypeToken<List<Contact>>(){}.type
 
             return gson.fromJson(jsonFileString, listContactType)
         }

@@ -1,0 +1,44 @@
+[versions]
+agp = "8.5.1"
+converterGson = "2.11.0"
+coreKtx = "1.13.1"
+firebaseBom = "33.1.2"
+gson = "2.11.0"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+appcompat = "1.7.0"
+kotlinxCoroutinesAndroid = "1.8.1"
+kotlinxCoroutinesCore = "1.8.1"
+lifecycleLivedata = "2.8.3"
+lifecycleViewmodelKtx = "2.8.3"
+material = "1.12.0"
+kotlin = "2.0.0"
+playServicesAds = "23.2.0"
+retrofit = "2.11.0"
+swiperefreshlayout = "1.1.0"
+
+[libraries]
+converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
+converter-jackson = { module = "com.squareup.retrofit2:converter-jackson", version.ref = "converterGson" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
+lifecycle-livedata = { module = "androidx.lifecycle:lifecycle-livedata", version.ref = "lifecycleLivedata" }
+lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+

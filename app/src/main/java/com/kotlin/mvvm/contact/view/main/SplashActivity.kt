@@ -28,7 +28,6 @@ class SplashActivity : AppCompatActivity() {
             this@SplashActivity,
             this@SplashActivity.getString(R.string.admob_app_open_ad_unit_id),
             AdRequest.Builder().build(),
-            AppOpenAd.APP_OPEN_AD_ORIENTATION_PORTRAIT,
             object : AppOpenAd.AppOpenAdLoadCallback() {
                 /**
                  * Called when an app open ad has loaded.
