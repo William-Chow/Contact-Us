@@ -5,22 +5,22 @@ plugins {
 }
 
 android {
-    namespace 'com.kotlin.mvvm.contact'
-    compileSdk 36
+    namespace = 'com.kotlin.mvvm.contact'
+    compileSdk = 37
 
     defaultConfig {
-        applicationId "com.kotlin.mvvm.contact"
-        minSdk 28
-        targetSdk 36
-        versionCode 3
-        versionName "2.1"
+        applicationId = "com.kotlin.mvvm.contact"
+        minSdk = 28
+        targetSdk = 36
+        versionCode = 3
+        versionName = "3.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -32,12 +32,11 @@ android {
         jvmTarget = '1.8'
     }
     buildFeatures {
-        compose true
+        compose = true
     }
 }
 
 dependencies {
-
     implementation libs.appcompat
     implementation libs.material
     testImplementation libs.junit
@@ -45,35 +44,29 @@ dependencies {
     androidTestImplementation libs.espresso.core
 
     implementation libs.core.ktx
+    implementation platform(libs.compose.bom)
     implementation libs.activity.compose
     implementation libs.compose.foundation
+    implementation libs.compose.material.icons.core
     implementation libs.compose.material3
     implementation libs.compose.ui
     implementation libs.compose.ui.tooling.preview
     debugImplementation libs.compose.ui.tooling
-
-    implementation(platform(libs.firebase.bom)) // BoM controls Firebase versions
-    // implementation(libs.firebase.analytics.ktx) // version is managed by BoM
 
     // Admob
     implementation libs.play.services.ads
     //Gson
     implementation libs.gson
     // retrofit
-    implementation(libs.retrofit)
+    implementation libs.retrofit
     implementation libs.converter.gson
-    implementation libs.converter.jackson
     // Coroutines
     implementation libs.kotlinx.coroutines.android
     implementation libs.kotlinx.coroutines.core
     // ViewModel
-    def lifecycle_version = '2.8.3'
-    implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycle_version"
+    implementation libs.lifecycle.viewmodel
     implementation libs.lifecycle.livedata
-    def lifecycle_view_model_version = "2.8.3"
-    implementation(libs.lifecycle.viewmodel.ktx)
+    implementation libs.lifecycle.viewmodel.ktx
     // ViewModel utilities for Compose
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_view_model_version")
-    // Swipe Refresh Layout
-    implementation libs.swiperefreshlayout
+    implementation libs.lifecycle.viewmodel.compose
 }
