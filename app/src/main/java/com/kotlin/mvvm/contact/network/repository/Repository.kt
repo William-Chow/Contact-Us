@@ -4,7 +4,8 @@ import androidx.lifecycle.MutableLiveData
 import com.kotlin.mvvm.contact.model.Contact
 import com.kotlin.mvvm.contact.network.ResponseState
 import com.kotlin.mvvm.contact.network.Retrofit
-import com.kotlin.mvvm.contact.network.Retrofit.SECRET_KEY
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.Response
 
 object Repository {
 
@@ -12,59 +13,64 @@ object Repository {
 
     // Get List of Contact
     suspend fun getContacts(): ResponseState<List<Contact>> {
-        val response = Retrofit.api.getContacts(SECRET_KEY)
+        val response = Retrofit.api.getContacts()
         return if (response.isSuccessful) {
             val responseBody = response.body()
             if (responseBody != null) {
-                ResponseState.Success(responseBody)
+                ResponseState.Success(responseBody.map { it.toContact() })
             } else {
-                ResponseState.Error(response)
+                errorFrom(response)
             }
         } else {
-            ResponseState.Error(response)
+            errorFrom(response)
         }
     }
 
     // Get Particular Item
     suspend fun getContactPersonal(_selectedItem: Int): ResponseState<Contact> {
-        val response = Retrofit.api.getContact(SECRET_KEY, _selectedItem)
+        val response = Retrofit.api.getContact(_selectedItem + 1)
         return if (response.isSuccessful) {
             val responseBody = response.body()
             if (responseBody != null) {
-                ResponseState.Success(responseBody)
+                ResponseState.Success(responseBody.toContact())
             } else {
-                ResponseState.Error(response)
+                errorFrom(response)
             }
         } else {
-            ResponseState.Error(response)
+            errorFrom(response)
         }
     }
 
     suspend fun updateContact(_selectedItem: Int, _contact: Contact): ResponseState<Contact> {
-        val response = Retrofit.api.updateContact(SECRET_KEY, _selectedItem, _contact)
+        val response = Retrofit.api.updateContact(_selectedItem + 1, _contact)
         return if (response.isSuccessful) {
             val responseBody = response.body()
             if (responseBody != null) {
                 ResponseState.Success(responseBody)
             } else {
-                ResponseState.Error(response)
+                errorFrom(response)
             }
         } else {
-            ResponseState.Error(response)
+            errorFrom(response)
         }
     }
 
     suspend fun addContact(_contact: Contact): ResponseState<List<Contact>> {
-        val response = Retrofit.api.addContact(SECRET_KEY, _contact)
+        val response = Retrofit.api.addContact(_contact)
         return if (response.isSuccessful) {
             val responseBody = response.body()
             if (responseBody != null) {
-                ResponseState.Success(responseBody)
+                ResponseState.Success(listOf(responseBody))
             } else {
-                ResponseState.Error(response)
+                errorFrom(response)
             }
         } else {
-            ResponseState.Error(response)
+            errorFrom(response)
         }
+    }
+
+    private fun <T> errorFrom(response: Response<*>): ResponseState.Error<T> {
+        val errorBody = response.errorBody() ?: response.message().toResponseBody(null)
+        return ResponseState.Error(Response.error(response.code(), errorBody))
     }
 }

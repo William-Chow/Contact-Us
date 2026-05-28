@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.jetbrains.kotlin.compose)
 }
 
 android {
@@ -30,7 +31,9 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-    viewBinding.enabled = true
+    buildFeatures {
+        compose true
+    }
 }
 
 dependencies {
@@ -42,6 +45,12 @@ dependencies {
     androidTestImplementation libs.espresso.core
 
     implementation libs.core.ktx
+    implementation libs.activity.compose
+    implementation libs.compose.foundation
+    implementation libs.compose.material3
+    implementation libs.compose.ui
+    implementation libs.compose.ui.tooling.preview
+    debugImplementation libs.compose.ui.tooling
 
     implementation(platform(libs.firebase.bom)) // BoM controls Firebase versions
     // implementation(libs.firebase.analytics.ktx) // version is managed by BoM
