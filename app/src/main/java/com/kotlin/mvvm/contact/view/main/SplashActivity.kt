@@ -29,7 +29,6 @@ import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.appopen.AppOpenAd
 import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.view.compose.ContactUsTheme
@@ -40,7 +39,7 @@ class SplashActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        MobileAds.initialize(this) {}
+        // MobileAds is initialized once in MyApplication.
         loadAppOpenAd()
 
         setContent {

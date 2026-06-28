@@ -1,66 +1,70 @@
 package com.kotlin.mvvm.contact.viewmodel
 
-import android.app.Activity
-import android.content.Context
-import android.util.Log
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.Utils
 import com.kotlin.mvvm.contact.model.Contact
 import com.kotlin.mvvm.contact.network.ResponseState
 import com.kotlin.mvvm.contact.network.repository.Repository
-import com.kotlin.mvvm.contact.view.main.MyContactActivity
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-class ContactViewModel : ViewModel() {
+class ContactViewModel(application: Application) : AndroidViewModel(application) {
 
-    val errorMessage = MutableLiveData<String>()
+    private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
+    val contacts: StateFlow<List<Contact>> = _contacts.asStateFlow()
 
-    // Coroutines
-    private var job: Job? = null
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    val contactLiveData = MutableLiveData<List<Contact>>()
-    val pbLoading = MutableLiveData<Boolean>()
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
 
-    fun getContacts() {
-        job = viewModelScope.launch {
+    fun onQueryChange(value: String) {
+        _query.value = value
+    }
+
+    // One-shot messages (errors / info). Channel avoids the sticky-event replay of LiveData.
+    private val _events = Channel<String>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
+
+    private var loaded = false
+
+    /** Loads the list only on the first composition; ignored on later recompositions. */
+    fun loadInitial() {
+        if (loaded) return
+        loaded = true
+        loadContacts()
+    }
+
+    fun loadContacts() {
+        if (!Utils.checkInternetConnection(getApplication())) {
+            emit(getString(R.string.internet_connection_issues))
+            return
+        }
+        _isLoading.value = true
+        viewModelScope.launch {
             when (val response = Repository.getContacts()) {
-                is ResponseState.Success -> {
-                    pbLoading.value = false
-                    contactLiveData.postValue(response.data)
-                }
-
-                is ResponseState.Error -> {
-                    pbLoading.value = false
-                    // Handling the Error State in Future
-                    onError("" + response.response.code() + " " + response.response.message())
-                    Log.i("William", "" + response.response.code() + " " + response.response.message())
-                }
+                is ResponseState.Success -> _contacts.value = response.data
+                is ResponseState.Error -> emit("${response.code ?: ""} ${response.message}".trim())
             }
+            _isLoading.value = false
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        job?.cancel()
+    fun loadBackup() {
+        _contacts.value = Utils.retrieveBackDataFromJson(getApplication())
     }
 
-    fun checkInternetConnection(context: Context): Boolean {
-        return Utils.checkInternetConnection(context)
+    private fun emit(message: String) {
+        _events.trySend(message)
     }
 
-    fun intentAddContact(activity: Activity, selectedItem: Int) {
-        if (selectedItem == -1) {
-            // -1 means new Contact Record
-            Utils.intent(activity, MyContactActivity::class.java)
-        } else {
-            Utils.intent(activity, selectedItem, MyContactActivity::class.java)
-        }
-    }
-
-    private fun onError(message: String) {
-        errorMessage.value = message
-    }
+    private fun getString(resId: Int): String = getApplication<Application>().getString(resId)
 }

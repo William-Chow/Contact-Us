@@ -1,80 +1,72 @@
 package com.kotlin.mvvm.contact.view.main
 
+import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.lifecycle.ViewModelProvider
-import com.google.android.gms.ads.MobileAds
-import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.Utils
-import com.kotlin.mvvm.contact.model.Contact
 import com.kotlin.mvvm.contact.view.compose.ContactListScreen
 import com.kotlin.mvvm.contact.view.compose.ContactUsTheme
 import com.kotlin.mvvm.contact.viewmodel.ContactViewModel
-import kotlinx.coroutines.launch
 
 class ContactActivity : AppCompatActivity() {
 
-    private lateinit var contactViewModel: ContactViewModel
-    private var contacts by mutableStateOf<List<Contact>>(emptyList())
-    private var isLoading by mutableStateOf(false)
+    private lateinit var viewModel: ContactViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        contactViewModel = ViewModelProvider(this)[ContactViewModel::class.java]
-        MobileAds.initialize(this) { }
-
-        contactViewModel.contactLiveData.observe(this) { contacts = it }
-        contactViewModel.pbLoading.observe(this) { isLoading = it }
-        contactViewModel.errorMessage.observe(this) {
-            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
-        }
+        viewModel = ViewModelProvider(this)[ContactViewModel::class.java]
 
         setContent {
             ContactUsTheme {
+                val contacts by viewModel.contacts.collectAsState()
+                val query by viewModel.query.collectAsState()
+                val isLoading by viewModel.isLoading.collectAsState()
                 val snackbarHostState = remember { SnackbarHostState() }
-                val coroutineScope = rememberCoroutineScope()
 
+                val filtered by remember {
+                    derivedStateOf {
+                        val q = query.trim()
+                        if (q.isEmpty()) contacts
+                        else contacts.filter {
+                            "${it.firstName} ${it.lastName}".contains(q, ignoreCase = true)
+                        }
+                    }
+                }
+
+                LaunchedEffect(Unit) { viewModel.loadInitial() }
                 LaunchedEffect(Unit) {
-                    loadContacts(snackbarHostState)
+                    viewModel.events.collect { snackbarHostState.showSnackbar(it) }
                 }
 
                 ContactListScreen(
-                    contacts = contacts,
+                    contacts = filtered,
+                    totalCount = contacts.size,
+                    searchQuery = query,
                     isLoading = isLoading,
                     snackbarHostState = snackbarHostState,
-                    onSyncClick = {
-                        coroutineScope.launch { loadContacts(snackbarHostState) }
-                    },
-                    onBackupClick = {
-                        contacts = Utils.retrieveBackDataFromJson(this@ContactActivity)
-                    },
-                    onAddClick = {
-                        contactViewModel.intentAddContact(this@ContactActivity, -1)
-                    },
-                    onContactClick = { selectedItem ->
-                        contactViewModel.intentAddContact(this@ContactActivity, selectedItem)
-                    }
+                    onSearchChange = viewModel::onQueryChange,
+                    onSyncClick = { viewModel.loadContacts() },
+                    onBackupClick = { viewModel.loadBackup() },
+                    onAddClick = { openEdit(null) },
+                    onContactClick = { contact -> openEdit(contact.id.toIntOrNull()) }
                 )
             }
         }
     }
 
-    private suspend fun loadContacts(snackbarHostState: SnackbarHostState) {
-        if (contactViewModel.checkInternetConnection(this)) {
-            isLoading = true
-            contactViewModel.getContacts()
-        } else {
-            snackbarHostState.showSnackbar(getString(R.string.internet_connection_issues))
-        }
+    /** Opens the edit screen. A null id starts a new contact. */
+    private fun openEdit(contactId: Int?) {
+        val intent = Intent(this, MyContactActivity::class.java)
+        if (contactId != null) intent.putExtra(Utils.OBJECT_NUM, contactId)
+        startActivity(intent)
     }
 }

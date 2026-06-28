@@ -5,10 +5,11 @@ import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModelProvider
-import com.google.android.gms.ads.MobileAds
 import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.Utils
 import com.kotlin.mvvm.contact.view.compose.ContactUsTheme
@@ -17,86 +18,44 @@ import com.kotlin.mvvm.contact.viewmodel.MyContactViewModel
 
 class MyContactActivity : AppCompatActivity() {
 
-    private lateinit var myContactViewModel: MyContactViewModel
-
-    private var contactID = ""
-    private var selectedContactItem = -1
-    private var firstName by mutableStateOf("")
-    private var lastName by mutableStateOf("")
-    private var email by mutableStateOf("")
-    private var phone by mutableStateOf("")
-    private var isLoading by mutableStateOf(false)
+    private lateinit var viewModel: MyContactViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        myContactViewModel = ViewModelProvider(this)[MyContactViewModel::class.java]
-        MobileAds.initialize(this) { }
-
-        selectedContactItem = intent.getIntExtra(Utils.object_num, -1)
-
-        myContactViewModel.contactLiveData.observe(this) { contact ->
-            contactID = contact.id
-            firstName = contact.firstName
-            lastName = contact.lastName
-            email = contact.email.orEmpty()
-            phone = contact.phone.orEmpty()
-        }
-        myContactViewModel.pbLoading.observe(this) { isLoading = it }
-        myContactViewModel.errorMessage.observe(this) {
-            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
-        }
-        myContactViewModel.isUpdateContactSuccess.observe(this) {
-            clearUI()
-            if (it) Toast.makeText(this, getString(R.string.contact_update_success), Toast.LENGTH_SHORT).show()
-        }
-        myContactViewModel.isAddedContactSuccess.observe(this) {
-            clearUI()
-            if (it) Toast.makeText(this, getString(R.string.contact_added_success), Toast.LENGTH_SHORT).show()
-        }
-
-        if (myContactViewModel.checkInternetConnection(this)) {
-            if (selectedContactItem != -1) {
-                isLoading = true
-                myContactViewModel.getContact(selectedContactItem)
-            }
-        } else {
-            Toast.makeText(this, getString(R.string.internet_connection_issues), Toast.LENGTH_LONG).show()
-        }
+        viewModel = ViewModelProvider(this)[MyContactViewModel::class.java]
+        val selectedItem = intent.getIntExtra(Utils.OBJECT_NUM, -1)
 
         setContent {
             ContactUsTheme {
-                EditContactScreen(
-                    firstName = firstName,
-                    lastName = lastName,
-                    email = email,
-                    phone = phone,
-                    isLoading = isLoading,
-                    onFirstNameChange = { firstName = it },
-                    onLastNameChange = { lastName = it },
-                    onEmailChange = { email = it },
-                    onPhoneChange = { phone = it },
-                    onCancelClick = { finish() },
-                    onSaveClick = {
-                        myContactViewModel.checkValidator(
-                            context = this@MyContactActivity,
-                            selectedContactItem = selectedContactItem,
-                            id = contactID,
-                            firstName = firstName,
-                            lastName = lastName,
-                            email = email,
-                            phone = phone
-                        )
+                val form by viewModel.form.collectAsState()
+                val isLoading by viewModel.isLoading.collectAsState()
+                val context = LocalContext.current
+
+                LaunchedEffect(Unit) { viewModel.start(selectedItem) }
+                LaunchedEffect(Unit) {
+                    viewModel.events.collect {
+                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                     }
+                }
+
+                EditContactScreen(
+                    title = stringResource(
+                        if (selectedItem == -1) R.string.new_contact else R.string.edit_contact
+                    ),
+                    firstName = form.firstName,
+                    lastName = form.lastName,
+                    email = form.email,
+                    phone = form.phone,
+                    isLoading = isLoading,
+                    onFirstNameChange = viewModel::onFirstNameChange,
+                    onLastNameChange = viewModel::onLastNameChange,
+                    onEmailChange = viewModel::onEmailChange,
+                    onPhoneChange = viewModel::onPhoneChange,
+                    onCancelClick = { finish() },
+                    onSaveClick = { viewModel.save() }
                 )
             }
         }
-    }
-
-    private fun clearUI() {
-        firstName = ""
-        lastName = ""
-        email = ""
-        phone = ""
     }
 }

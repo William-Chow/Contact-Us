@@ -8,6 +8,26 @@
 
     <string name="internet_connection_issues">Internet Connection no found. Try again later.</string>
     <string name="splash_activity_text" translatable="false">CONTACT US</string>
+
+    <!-- Contact list -->
+    <string name="contacts_title">Contacts</string>
+    <string name="search_contacts">Search contacts</string>
+    <plurals name="contacts_count">
+        <item quantity="one">%1$d contact</item>
+        <item quantity="other">%1$d contacts</item>
+    </plurals>
+    <string name="cd_backup">Backup</string>
+    <string name="cd_sync">Sync</string>
+    <string name="new_contact_fab">New contact</string>
+    <string name="empty_contacts">No contacts</string>
+    <string name="empty_contacts_hint">Contacts you add will appear here.</string>
+    <string name="empty_contacts_cta">Add contact</string>
+    <string name="no_results">No results</string>
+
+    <!-- Edit contact -->
+    <string name="new_contact">New contact</string>
+    <string name="edit_contact">Edit contact</string>
+
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="main_information">Main Information</string>

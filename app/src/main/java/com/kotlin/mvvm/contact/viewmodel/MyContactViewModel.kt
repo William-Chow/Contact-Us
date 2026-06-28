@@ -1,118 +1,128 @@
 package com.kotlin.mvvm.contact.viewmodel
 
-import android.content.Context
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.Utils
 import com.kotlin.mvvm.contact.model.Contact
 import com.kotlin.mvvm.contact.network.ResponseState
 import com.kotlin.mvvm.contact.network.repository.Repository
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-class MyContactViewModel : ViewModel() {
+class MyContactViewModel(application: Application) : AndroidViewModel(application) {
 
-    val errorMessage = MutableLiveData<String>()
+    data class ContactForm(
+        val firstName: String = "",
+        val lastName: String = "",
+        val email: String = "",
+        val phone: String = ""
+    )
 
-    // Coroutines
-    private var job: Job? = null
+    private val _form = MutableStateFlow(ContactForm())
+    val form: StateFlow<ContactForm> = _form.asStateFlow()
 
-    val contactLiveData = MutableLiveData<Contact>()
-    val pbLoading = MutableLiveData<Boolean>()
-    val isUpdateContactSuccess = MutableLiveData<Boolean>()
-    val isAddedContactSuccess = MutableLiveData<Boolean>()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    fun getContact(selectedItem: Int) {
-        job = viewModelScope.launch {
-            when (val response = Repository.getContactPersonal(selectedItem)) {
+    private val _events = Channel<String>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
+
+    // -1 means a brand new contact; otherwise the real contact id being edited.
+    private var contactId: String = ""
+    private var selectedItemId: Int = -1
+    private var started = false
+
+    /** Loads the selected contact once; safe to call from a LaunchedEffect across recompositions. */
+    fun start(selectedItem: Int) {
+        if (started) return
+        started = true
+        selectedItemId = selectedItem
+        if (selectedItem == -1) return
+
+        if (!Utils.checkInternetConnection(getApplication())) {
+            emit(getString(R.string.internet_connection_issues))
+            return
+        }
+        _isLoading.value = true
+        viewModelScope.launch {
+            when (val response = Repository.getContact(selectedItem)) {
                 is ResponseState.Success -> {
-                    pbLoading.value = false
-                    contactLiveData.postValue(response.data)
+                    contactId = response.data.id
+                    _form.value = ContactForm(
+                        firstName = response.data.firstName,
+                        lastName = response.data.lastName,
+                        email = response.data.email.orEmpty(),
+                        phone = response.data.phone.orEmpty()
+                    )
                 }
-
-                is ResponseState.Error -> {
-                    pbLoading.value = false
-                    // Handling the Error State in Future
-                    onError("Unable to get Contact " + response.response.code() + " " + response.response.message())
-                }
+                is ResponseState.Error ->
+                    emit("Unable to get Contact ${response.code ?: ""} ${response.message}".trim())
             }
+            _isLoading.value = false
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        job?.cancel()
-    }
+    fun onFirstNameChange(value: String) { _form.value = _form.value.copy(firstName = value) }
+    fun onLastNameChange(value: String) { _form.value = _form.value.copy(lastName = value) }
+    fun onEmailChange(value: String) { _form.value = _form.value.copy(email = value) }
+    fun onPhoneChange(value: String) { _form.value = _form.value.copy(phone = value) }
 
-    fun checkInternetConnection(context: Context): Boolean {
-        return Utils.checkInternetConnection(context)
-    }
-
-    fun checkValidator(context: Context, selectedContactItem: Int, id: String, firstName: String, lastName: String, email: String, phone: String) {
-        if (firstName.isEmpty()) {
-            onError(context.getString(R.string.contact_first_name_empty))
-        } else if (lastName.isEmpty()) {
-            onError(context.getString(R.string.contact_last_name_empty))
-        } else if (email.isNotEmpty()) {
-            if (Utils.isEmail(email) != true) onError(context.getString(R.string.contact_email_invalid))
-            else addOrUpdate(context, selectedContactItem, id, firstName, lastName, email, phone)
-        } else {
-            addOrUpdate(context, selectedContactItem, id, firstName, lastName, email, phone)
+    fun save() {
+        val form = _form.value
+        when {
+            form.firstName.isEmpty() -> emit(getString(R.string.contact_first_name_empty))
+            form.lastName.isEmpty() -> emit(getString(R.string.contact_last_name_empty))
+            form.email.isNotEmpty() && !Utils.isEmail(form.email) ->
+                emit(getString(R.string.contact_email_invalid))
+            else -> submit(form)
         }
     }
 
-    private fun addOrUpdate(context: Context, selectedContactItem: Int, id: String, firstName: String, lastName: String, email: String, phone: String) {
-        // Update/Add the Contact
-        if (selectedContactItem != -1) {
-            pbLoading.value = true
-            // Update User
-            updateContact(context, selectedContactItem, Contact(id, firstName, lastName, email, phone))
-        } else {
-            pbLoading.value = true
-            // Add User
-            addContact(context, Contact(firstName + lastName, firstName, lastName, email, phone))
-        }
-    }
-
-    private fun updateContact(context: Context, selectedContactItem: Int, contact: Contact) {
-        job = viewModelScope.launch {
-            when (val response = Repository.updateContact(selectedContactItem, contact)) {
+    private fun submit(form: ContactForm) {
+        val isUpdate = selectedItemId != -1
+        _isLoading.value = true
+        viewModelScope.launch {
+            val response = if (isUpdate) {
+                Repository.updateContact(
+                    selectedItemId,
+                    Contact(contactId, form.firstName, form.lastName, form.email, form.phone)
+                )
+            } else {
+                // The mock API assigns the id; send an empty one rather than a synthetic value.
+                Repository.addContact(
+                    Contact("", form.firstName, form.lastName, form.email, form.phone)
+                )
+            }
+            when (response) {
                 is ResponseState.Success -> {
-                    pbLoading.value = false
-                    isUpdateContactSuccess.postValue(true)
+                    _form.value = ContactForm()
+                    emit(
+                        getString(
+                            if (isUpdate) R.string.contact_update_success
+                            else R.string.contact_added_success
+                        )
+                    )
                 }
-
-                is ResponseState.Error -> {
-                    pbLoading.value = false
-                    isUpdateContactSuccess.postValue(false)
-                    // Handling the Error State in Future
-                    onError(context.getString(R.string.contact_update_failed) + response.response.code() + " " + response.response.message())
-                }
+                is ResponseState.Error -> emit(
+                    getString(
+                        if (isUpdate) R.string.contact_update_failed
+                        else R.string.contact_added_failed
+                    )
+                )
             }
+            _isLoading.value = false
         }
     }
 
-    private fun addContact(context: Context, contact: Contact) {
-        job = viewModelScope.launch {
-            when (val response = Repository.addContact(contact)) {
-                is ResponseState.Success -> {
-                    pbLoading.value = false
-                    isAddedContactSuccess.postValue(true)
-                }
-
-                is ResponseState.Error -> {
-                    pbLoading.value = false
-                    isAddedContactSuccess.postValue(false)
-                    // Handling the Error State in Future
-                    onError(context.getString(R.string.contact_added_failed) + response.response.code() + " " + response.response.message())
-                }
-            }
-        }
+    private fun emit(message: String) {
+        _events.trySend(message)
     }
 
-    private fun onError(message: String) {
-        errorMessage.value = message
-    }
+    private fun getString(resId: Int): String = getApplication<Application>().getString(resId)
 }
