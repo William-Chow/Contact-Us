@@ -18,6 +18,9 @@
     <!-- SplashActivity theme. -->
     <style name="SplashTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:colorBackground">#D4EBF2</item>
+        <!-- Splash background stays light in both modes, so keep dark status bar icons.
+             android:statusBarColor is ignored from API 35, so this controls the contrast. -->
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="circleImageView" parent="">
