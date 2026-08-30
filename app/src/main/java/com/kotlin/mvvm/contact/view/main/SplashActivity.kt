@@ -3,6 +3,8 @@ package com.kotlin.mvvm.contact.view.main
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
@@ -31,22 +33,52 @@ import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.appopen.AppOpenAd
 import com.kotlin.mvvm.contact.R
+import com.kotlin.mvvm.contact.ads.ConsentManager
 import com.kotlin.mvvm.contact.view.compose.ContactUsTheme
+import java.util.concurrent.atomic.AtomicBoolean
 
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
 
+    private val handler = Handler(Looper.getMainLooper())
+
+    // Skip, the consent callbacks, the ad callbacks and the timeout can all fire; only the first
+    // one may navigate.
+    private val navigated = AtomicBoolean(false)
+    private val phaseTimeout = Runnable { startMainActivity() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // MobileAds is initialized once in MyApplication.
-        loadAppOpenAd()
 
         setContent {
             ContactUsTheme {
                 SplashScreen(onSkipClick = { startMainActivity() })
             }
         }
+
+        // Guards the consent network round trip only. It is dropped before any form can appear,
+        // because from that point the user sets the pace and must not be navigated away from.
+        handler.postDelayed(phaseTimeout, CONSENT_TIMEOUT_MS)
+        ConsentManager.gather(
+            activity = this,
+            onFormMayShow = { handler.removeCallbacks(phaseTimeout) },
+            onReady = onReady@{ canRequestAds ->
+                handler.removeCallbacks(phaseTimeout)
+                if (navigated.get() || isFinishing || isDestroyed) return@onReady
+                if (canRequestAds) {
+                    handler.postDelayed(phaseTimeout, AD_TIMEOUT_MS)
+                    loadAppOpenAd()
+                } else {
+                    // Consent withheld: no ad to wait for, so go straight in.
+                    startMainActivity()
+                }
+            }
+        )
+    }
+
+    override fun onDestroy() {
+        handler.removeCallbacks(phaseTimeout)
+        super.onDestroy()
     }
 
     private fun loadAppOpenAd() {
@@ -56,23 +88,40 @@ class SplashActivity : AppCompatActivity() {
             AdRequest.Builder().build(),
             object : AppOpenAd.AppOpenAdLoadCallback() {
                 override fun onAdLoaded(appOpenAd: AppOpenAd) {
+                    // The user may have skipped ahead while the ad was still loading.
+                    if (navigated.get() || isFinishing || isDestroyed) return
+                    handler.removeCallbacks(phaseTimeout)
+
                     appOpenAd.fullScreenContentCallback = object : FullScreenContentCallback() {
                         override fun onAdDismissedFullScreenContent() {
                             startMainActivity()
                         }
 
-                        override fun onAdFailedToShowFullScreenContent(adError: AdError) = Unit
+                        override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                            startMainActivity()
+                        }
                     }
                     appOpenAd.show(this@SplashActivity)
                 }
 
-                override fun onAdFailedToLoad(loadAdError: LoadAdError) = Unit
+                // No ad (offline, no fill, error): carry on into the app instead of doing nothing.
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    startMainActivity()
+                }
             }
         )
     }
 
     private fun startMainActivity() {
+        if (!navigated.compareAndSet(false, true)) return
+        handler.removeCallbacks(phaseTimeout)
         startActivity(Intent(this, ContactActivity::class.java))
+        finish()
+    }
+
+    private companion object {
+        const val CONSENT_TIMEOUT_MS = 8_000L
+        const val AD_TIMEOUT_MS = 5_000L
     }
 }
 

@@ -3,26 +3,18 @@ package com.kotlin.mvvm.contact.network.api
 import com.google.gson.annotations.SerializedName
 import com.kotlin.mvvm.contact.model.Contact
 import retrofit2.Response
-import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.PATCH
-import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface Api {
 
-    // JSONPlaceholder is a mock REST API. POST/PATCH return fake success responses but do not persist data.
+    // JSONPlaceholder is a mock REST API, read-only as far as this app is concerned: contacts the
+    // user creates or edits live in the local Room database, not here.
     @GET("users")
     suspend fun getContacts(): Response<List<JsonPlaceholderUser>>
 
     @GET("users/{id}")
     suspend fun getContact(@Path("id") id: Int): Response<JsonPlaceholderUser>
-
-    @PATCH("users/{id}")
-    suspend fun updateContact(@Path("id") id: Int, @Body contact: Contact): Response<Contact>
-
-    @POST("users")
-    suspend fun addContact(@Body contact: Contact): Response<Contact>
 }
 
 data class JsonPlaceholderUser(

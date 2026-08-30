@@ -1,0 +1,10 @@
+<resources>
+    <!--
+      Google's official AdMob test ids, scoped to the debug build type so development traffic never
+      reaches the production ad units. Clicking your own live ads risks having the AdMob account
+      suspended, which is why these must not be the real ids during development.
+    -->
+    <string name="admob_unit_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_app_open_ad_unit_id" translatable="false">ca-app-pub-3940256099942544/9257395921</string>
+    <string name="admob_banner_ad_unit_id" translatable="false">ca-app-pub-3940256099942544/6300978111</string>
+</resources>

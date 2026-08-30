@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -65,7 +66,9 @@ fun ContactListScreen(
     onSyncClick: () -> Unit,
     onBackupClick: () -> Unit,
     onAddClick: () -> Unit,
-    onContactClick: (Contact) -> Unit
+    onContactClick: (Contact) -> Unit,
+    showPrivacyOptions: Boolean,
+    onPrivacyOptionsClick: () -> Unit
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -75,7 +78,9 @@ fun ContactListScreen(
                 searchQuery = searchQuery,
                 onSearchChange = onSearchChange,
                 onSyncClick = onSyncClick,
-                onBackupClick = onBackupClick
+                onBackupClick = onBackupClick,
+                showPrivacyOptions = showPrivacyOptions,
+                onPrivacyOptionsClick = onPrivacyOptionsClick
             )
         },
         floatingActionButton = {
@@ -148,7 +153,9 @@ private fun ContactListHeader(
     searchQuery: String,
     onSearchChange: (String) -> Unit,
     onSyncClick: () -> Unit,
-    onBackupClick: () -> Unit
+    onBackupClick: () -> Unit,
+    showPrivacyOptions: Boolean,
+    onPrivacyOptionsClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -189,6 +196,14 @@ private fun ContactListHeader(
                 contentDescription = stringResource(R.string.cd_sync),
                 onClick = onSyncClick
             )
+            // Only shown where UMP reports the user must be able to revisit their consent choice.
+            if (showPrivacyOptions) {
+                HeaderAction(
+                    icon = Icons.Default.Settings,
+                    contentDescription = stringResource(R.string.cd_privacy_options),
+                    onClick = onPrivacyOptionsClick
+                )
+            }
         }
         SearchField(
             query = searchQuery,

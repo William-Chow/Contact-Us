@@ -17,14 +17,6 @@ object Repository {
         handle(Retrofit.api.getContact(id)) { it.toContact() }
     }
 
-    suspend fun updateContact(id: Int, contact: Contact): ResponseState<Contact> = safeCall {
-        handle(Retrofit.api.updateContact(id, contact)) { it }
-    }
-
-    suspend fun addContact(contact: Contact): ResponseState<Contact> = safeCall {
-        handle(Retrofit.api.addContact(contact)) { it }
-    }
-
     private inline fun <T, R> handle(response: Response<T>, transform: (T) -> R): ResponseState<R> {
         if (!response.isSuccessful) {
             return ResponseState.Error(response.code(), response.message())

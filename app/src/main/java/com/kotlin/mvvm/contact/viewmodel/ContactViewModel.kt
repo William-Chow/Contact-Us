@@ -5,20 +5,25 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.Utils
+import com.kotlin.mvvm.contact.data.ContactRepository
 import com.kotlin.mvvm.contact.model.Contact
 import com.kotlin.mvvm.contact.network.ResponseState
-import com.kotlin.mvvm.contact.network.repository.Repository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class ContactViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
-    val contacts: StateFlow<List<Contact>> = _contacts.asStateFlow()
+    private val repository = ContactRepository(application)
+
+    // Backed by Room, so a save or delete on the edit screen shows up here without a manual refresh.
+    val contacts: StateFlow<List<Contact>> = repository.observeContacts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -36,31 +41,51 @@ class ContactViewModel(application: Application) : AndroidViewModel(application)
 
     private var loaded = false
 
-    /** Loads the list only on the first composition; ignored on later recompositions. */
+    /** First launch on an empty database pulls the directory once; later launches read from Room. */
     fun loadInitial() {
         if (loaded) return
         loaded = true
-        loadContacts()
+        viewModelScope.launch {
+            if (repository.isEmpty()) sync(announce = false)
+        }
     }
 
-    fun loadContacts() {
+    fun onSyncClick() = sync(announce = true)
+
+    private fun sync(announce: Boolean) {
         if (!Utils.checkInternetConnection(getApplication())) {
-            emit(getString(R.string.internet_connection_issues))
+            if (announce) emit(getString(R.string.internet_connection_issues))
             return
         }
         _isLoading.value = true
         viewModelScope.launch {
-            when (val response = Repository.getContacts()) {
-                is ResponseState.Success -> _contacts.value = response.data
-                is ResponseState.Error -> emit("${response.code ?: ""} ${response.message}".trim())
+            when (val response = repository.syncFromRemote()) {
+                is ResponseState.Success -> if (announce) emit(importMessage(response.data))
+                is ResponseState.Error ->
+                    if (announce) emit("${response.code ?: ""} ${response.message}".trim())
             }
             _isLoading.value = false
         }
     }
 
-    fun loadBackup() {
-        _contacts.value = Utils.retrieveBackDataFromJson(getApplication())
+    fun importSampleData() {
+        _isLoading.value = true
+        viewModelScope.launch {
+            emit(importMessage(repository.importSampleData()))
+            _isLoading.value = false
+        }
     }
+
+    private fun importMessage(added: Int): String =
+        if (added == 0) {
+            getString(R.string.import_up_to_date)
+        } else {
+            getApplication<Application>().resources
+                .getQuantityString(R.plurals.import_added, added, added)
+        }
+
+    /** Surfaces an error raised outside the ViewModel (e.g. the UMP consent form). */
+    fun reportError(message: String) = emit(message)
 
     private fun emit(message: String) {
         _events.trySend(message)

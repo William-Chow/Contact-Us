@@ -11,7 +11,7 @@ import java.io.IOException
 
 object Utils {
 
-    const val OBJECT_NUM = "OBJECT"
+    const val EXTRA_CONTACT_ID = "contact_id"
 
     fun isEmail(email: String?): Boolean =
         !email.isNullOrEmpty() && Patterns.EMAIL_ADDRESS.matcher(email).matches()
@@ -21,14 +21,16 @@ object Utils {
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork ?: return false
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+        // Checking the capability rather than the transport also covers Ethernet and VPN, which the
+        // old Wi-Fi/cellular-only test reported as "offline".
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     fun retrieveBackDataFromJson(context: Context): List<Contact> {
         val jsonFileString = getJsonDataFromAsset(context, "data.json") ?: return emptyList()
         val listContactType = object : TypeToken<List<Contact>>() {}.type
-        return Gson().fromJson(jsonFileString, listContactType)
+        return Gson().fromJson<List<Contact>>(jsonFileString, listContactType).orEmpty()
     }
 
     private fun getJsonDataFromAsset(context: Context, fileName: String): String? =

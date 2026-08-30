@@ -10,10 +10,15 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.kotlin.mvvm.contact.R
+import com.kotlin.mvvm.contact.ads.ConsentManager
 
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+
+    // Nothing may be requested until UMP says consent allows it.
+    if (!ConsentManager.canRequestAds(context)) return
+
     val adView = remember {
         AdView(context).apply {
             setAdSize(AdSize.BANNER)

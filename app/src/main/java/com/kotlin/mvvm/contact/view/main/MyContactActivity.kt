@@ -24,7 +24,7 @@ class MyContactActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         viewModel = ViewModelProvider(this)[MyContactViewModel::class.java]
-        val selectedItem = intent.getIntExtra(Utils.OBJECT_NUM, -1)
+        val selectedId = intent.getStringExtra(Utils.EXTRA_CONTACT_ID)
 
         setContent {
             ContactUsTheme {
@@ -32,28 +32,35 @@ class MyContactActivity : AppCompatActivity() {
                 val isLoading by viewModel.isLoading.collectAsState()
                 val context = LocalContext.current
 
-                LaunchedEffect(Unit) { viewModel.start(selectedItem) }
+                LaunchedEffect(Unit) { viewModel.start(selectedId) }
                 LaunchedEffect(Unit) {
-                    viewModel.events.collect {
-                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            is MyContactViewModel.UiEvent.Message ->
+                                Toast.makeText(context, event.text, Toast.LENGTH_SHORT).show()
+
+                            MyContactViewModel.UiEvent.Close -> finish()
+                        }
                     }
                 }
 
                 EditContactScreen(
                     title = stringResource(
-                        if (selectedItem == -1) R.string.new_contact else R.string.edit_contact
+                        if (selectedId == null) R.string.new_contact else R.string.edit_contact
                     ),
                     firstName = form.firstName,
                     lastName = form.lastName,
                     email = form.email,
                     phone = form.phone,
                     isLoading = isLoading,
+                    canDelete = selectedId != null,
                     onFirstNameChange = viewModel::onFirstNameChange,
                     onLastNameChange = viewModel::onLastNameChange,
                     onEmailChange = viewModel::onEmailChange,
                     onPhoneChange = viewModel::onPhoneChange,
                     onCancelClick = { finish() },
-                    onSaveClick = { viewModel.save() }
+                    onSaveClick = { viewModel.save() },
+                    onDeleteClick = { viewModel.delete() }
                 )
             }
         }

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.jetbrains.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -73,6 +74,7 @@ dependencies {
 
     // Admob
     implementation libs.play.services.ads
+    implementation libs.user.messaging.platform
     //Gson
     implementation libs.gson
     // retrofit
@@ -85,6 +87,11 @@ dependencies {
     implementation libs.lifecycle.viewmodel
     implementation libs.lifecycle.livedata
     implementation libs.lifecycle.viewmodel.ktx
+    // Room — local persistence
+    implementation libs.room.runtime
+    implementation libs.room.ktx
+    ksp libs.room.compiler
+
     // ViewModel utilities for Compose
     implementation libs.lifecycle.viewmodel.compose
 }
