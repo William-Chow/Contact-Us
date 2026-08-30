@@ -18,3 +18,13 @@ local.properties
 key.properties
 *.jks
 *.keystore
+
+# Signing material without a recognised extension (already leaked once — keep it out)
+app/src/keystore/
+app/keystore/
+*.pepk
+
+# Release build outputs
+/app/release/
+*.aab
+*.apk
