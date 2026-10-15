@@ -12,11 +12,6 @@ object Repository {
         handle(Retrofit.api.getContacts()) { users -> users.map { it.toContact() } }
     }
 
-    // Get a single contact by its real id
-    suspend fun getContact(id: Int): ResponseState<Contact> = safeCall {
-        handle(Retrofit.api.getContact(id)) { it.toContact() }
-    }
-
     private inline fun <T, R> handle(response: Response<T>, transform: (T) -> R): ResponseState<R> {
         if (!response.isSuccessful) {
             return ResponseState.Error(response.code(), response.message())

@@ -4,7 +4,6 @@ import com.google.gson.annotations.SerializedName
 import com.kotlin.mvvm.contact.model.Contact
 import retrofit2.Response
 import retrofit2.http.GET
-import retrofit2.http.Path
 
 interface Api {
 
@@ -12,9 +11,6 @@ interface Api {
     // user creates or edits live in the local Room database, not here.
     @GET("users")
     suspend fun getContacts(): Response<List<JsonPlaceholderUser>>
-
-    @GET("users/{id}")
-    suspend fun getContact(@Path("id") id: Int): Response<JsonPlaceholderUser>
 }
 
 data class JsonPlaceholderUser(

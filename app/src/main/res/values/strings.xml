@@ -29,6 +29,7 @@
         <item quantity="other">%1$d contacts added</item>
     </plurals>
     <string name="import_up_to_date">Already up to date</string>
+    <string name="storage_error">Couldn\'t update contacts on this device. Try again.</string>
 
     <!-- Edit contact -->
     <string name="new_contact">New contact</string>

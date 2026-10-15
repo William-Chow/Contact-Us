@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -22,10 +23,32 @@ interface ContactDao {
     @Upsert
     suspend fun upsert(contact: ContactEntity)
 
-    /** Used by sync/import: rows already on the device are kept, so local edits are never clobbered. */
+    /**
+     * Used by sync/import: rows already on the device are kept, so local edits are never clobbered,
+     * and ids the user deleted are skipped, so deletions stick. Returns how many rows were added.
+     */
+    @Transaction
+    suspend fun insertMissing(contacts: List<ContactEntity>): Int {
+        val deleted = deletedIds().toSet()
+        return insertIgnoringExisting(contacts.filterNot { it.id in deleted }).count { it != -1L }
+    }
+
+    /** Removes the contact and remembers its id, so a later sync or import cannot bring it back. */
+    @Transaction
+    suspend fun deleteAndRemember(id: String) {
+        deleteById(id)
+        insertDeleted(DeletedContactEntity(id))
+    }
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertMissing(contacts: List<ContactEntity>): List<Long>
+    suspend fun insertIgnoringExisting(contacts: List<ContactEntity>): List<Long>
 
     @Query("DELETE FROM contacts WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("SELECT id FROM deleted_contacts")
+    suspend fun deletedIds(): List<String>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDeleted(deleted: DeletedContactEntity)
 }

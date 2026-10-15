@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,7 +67,8 @@ fun EditContactScreen(
     onSaveClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    var confirmingDelete by remember { mutableStateOf(false) }
+    // Saveable so the confirmation survives rotation instead of silently disappearing.
+    var confirmingDelete by rememberSaveable { mutableStateOf(false) }
 
     androidx.compose.material3.Scaffold(
         topBar = {

@@ -22,9 +22,10 @@ object Utils {
         val network = connectivityManager.activeNetwork ?: return false
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         // Checking the capability rather than the transport also covers Ethernet and VPN, which the
-        // old Wi-Fi/cellular-only test reported as "offline".
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        // old Wi-Fi/cellular-only test reported as "offline". VALIDATED is deliberately not
+        // required: it only means Android's own probe to Google succeeded, which fails or lags on
+        // networks that still reach our API. A request that then fails is reported by safeCall.
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     fun retrieveBackDataFromJson(context: Context): List<Contact> {

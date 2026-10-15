@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.jetbrains.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 android {
@@ -53,12 +54,26 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        // Robolectric tests read strings and the bundled data.json
+        unitTests.includeAndroidResources = true
+    }
+}
+
+// Commit each exported schema: the database holds the only copy of the user's contacts, so every
+// version bump needs a migration, and these files are the history migrations are checked against.
+room {
+    schemaDirectory "$projectDir/schemas"
 }
 
 dependencies {
     implementation libs.appcompat
     implementation libs.material
     testImplementation libs.junit
+    // Room and the view models run on the JVM under Robolectric, so no emulator is needed
+    testImplementation libs.robolectric
+    testImplementation libs.test.core
+    testImplementation libs.kotlinx.coroutines.test
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
 

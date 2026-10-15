@@ -59,6 +59,7 @@ import com.kotlin.mvvm.contact.model.Contact
 fun ContactListScreen(
     contacts: List<Contact>,
     totalCount: Int,
+    hasLoaded: Boolean,
     searchQuery: String,
     isLoading: Boolean,
     snackbarHostState: SnackbarHostState,
@@ -122,7 +123,9 @@ fun ContactListScreen(
                     }
                 }
 
-                isLoading -> Unit
+                // Before Room's first emission there is nothing to say yet: showing "No contacts"
+                // would flash on every launch for users who have some.
+                !hasLoaded || isLoading -> Unit
 
                 totalCount == 0 -> EmptyContacts(
                     onAddClick = onAddClick,

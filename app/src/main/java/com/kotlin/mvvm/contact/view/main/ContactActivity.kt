@@ -7,11 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModelProvider
 import com.kotlin.mvvm.contact.Utils
 import com.kotlin.mvvm.contact.ads.ConsentManager
@@ -34,15 +32,14 @@ class ContactActivity : AppCompatActivity() {
                 val query by viewModel.query.collectAsState()
                 val isLoading by viewModel.isLoading.collectAsState()
                 val snackbarHostState = remember { SnackbarHostState() }
-                var showPrivacyOptions by remember {
-                    mutableStateOf(ConsentManager.isPrivacyOptionsRequired(this@ContactActivity))
-                }
+                val consent by ConsentManager.state.collectAsState()
 
                 val filtered by remember {
                     derivedStateOf {
+                        val all = contacts.orEmpty()
                         val q = query.trim()
-                        if (q.isEmpty()) contacts
-                        else contacts.filter {
+                        if (q.isEmpty()) all
+                        else all.filter {
                             "${it.firstName} ${it.lastName}".contains(q, ignoreCase = true)
                         }
                     }
@@ -55,7 +52,8 @@ class ContactActivity : AppCompatActivity() {
 
                 ContactListScreen(
                     contacts = filtered,
-                    totalCount = contacts.size,
+                    totalCount = contacts?.size ?: 0,
+                    hasLoaded = contacts != null,
                     searchQuery = query,
                     isLoading = isLoading,
                     snackbarHostState = snackbarHostState,
@@ -64,19 +62,19 @@ class ContactActivity : AppCompatActivity() {
                     onBackupClick = { viewModel.importSampleData() },
                     onAddClick = { openEdit(null) },
                     onContactClick = { contact -> openEdit(contact.id) },
-                    showPrivacyOptions = showPrivacyOptions,
+                    showPrivacyOptions = consent.privacyOptionsRequired,
                     onPrivacyOptionsClick = {
                         ConsentManager.showPrivacyOptions(this@ContactActivity) { errorMessage ->
                             if (errorMessage != null) viewModel.reportError(errorMessage)
-                            // Only meaningful once the user has closed the form: their choice can
-                            // clear the requirement to offer it at all.
-                            showPrivacyOptions =
-                                ConsentManager.isPrivacyOptionsRequired(this@ContactActivity)
                         }
                     }
                 )
             }
         }
+
+        // The splash normally settles consent before handing over. If the user skipped it or it
+        // timed out first, gather here so the form still appears; ads stay off until it settles.
+        if (!ConsentManager.isSettled) ConsentManager.gather(this)
     }
 
     /** Opens the edit screen. A null id starts a new contact. */

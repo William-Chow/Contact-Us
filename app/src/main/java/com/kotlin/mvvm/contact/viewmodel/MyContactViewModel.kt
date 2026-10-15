@@ -7,6 +7,7 @@ import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.Utils
 import com.kotlin.mvvm.contact.data.ContactRepository
 import com.kotlin.mvvm.contact.model.Contact
+import com.kotlin.mvvm.contact.network.ResponseState
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-class MyContactViewModel(application: Application) : AndroidViewModel(application) {
+// The single-argument constructor is what ViewModelProvider calls; tests pass a repository
+// backed by an in-memory database.
+class MyContactViewModel @JvmOverloads constructor(
+    application: Application,
+    private val repository: ContactRepository = ContactRepository(application)
+) : AndroidViewModel(application) {
 
     sealed interface UiEvent {
         data class Message(val text: String) : UiEvent
@@ -30,8 +36,6 @@ class MyContactViewModel(application: Application) : AndroidViewModel(applicatio
         val phone: String = ""
     )
 
-    private val repository = ContactRepository(application)
-
     private val _form = MutableStateFlow(ContactForm())
     val form: StateFlow<ContactForm> = _form.asStateFlow()
 
@@ -44,6 +48,11 @@ class MyContactViewModel(application: Application) : AndroidViewModel(applicatio
     // null means a brand new contact; otherwise the id of the contact being edited.
     private var contactId: String? = null
     private var started = false
+
+    // A save or delete closes the screen, so only one may run, and none after one has landed (a
+    // failed one re-allows it). Without this, taps that land before finish() write again: a
+    // double-tapped Save inserts the new contact twice, and a Save right after Delete restores it.
+    private var writeStarted = false
 
     /** Loads the selected contact once; safe to call from a LaunchedEffect across recompositions. */
     fun start(id: String?) {
@@ -76,6 +85,7 @@ class MyContactViewModel(application: Application) : AndroidViewModel(applicatio
     fun onPhoneChange(value: String) { _form.value = _form.value.copy(phone = value) }
 
     fun save() {
+        if (writeStarted) return
         val form = _form.value
         when {
             form.firstName.isBlank() -> emit(getString(R.string.contact_first_name_empty))
@@ -88,9 +98,10 @@ class MyContactViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun persist(form: ContactForm) {
         val isUpdate = contactId != null
+        writeStarted = true
         _isLoading.value = true
         viewModelScope.launch {
-            repository.save(
+            val result = repository.save(
                 Contact(
                     id = contactId.orEmpty(),
                     firstName = form.firstName.trim(),
@@ -100,24 +111,43 @@ class MyContactViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             )
             _isLoading.value = false
-            emit(
-                getString(
-                    if (isUpdate) R.string.contact_update_success else R.string.contact_added_success
-                )
-            )
-            _events.trySend(UiEvent.Close)
+            when (result) {
+                is ResponseState.Success -> {
+                    emit(
+                        getString(
+                            if (isUpdate) R.string.contact_update_success
+                            else R.string.contact_added_success
+                        )
+                    )
+                    _events.trySend(UiEvent.Close)
+                }
+                is ResponseState.Error -> onWriteFailed(result)
+            }
         }
     }
 
     fun delete() {
+        if (writeStarted) return
         val id = contactId ?: return
+        writeStarted = true
         _isLoading.value = true
         viewModelScope.launch {
-            repository.delete(id)
+            val result = repository.delete(id)
             _isLoading.value = false
-            emit(getString(R.string.contact_deleted))
-            _events.trySend(UiEvent.Close)
+            when (result) {
+                is ResponseState.Success -> {
+                    emit(getString(R.string.contact_deleted))
+                    _events.trySend(UiEvent.Close)
+                }
+                is ResponseState.Error -> onWriteFailed(result)
+            }
         }
+    }
+
+    /** Nothing was written and the screen stays open, so the user may try again. */
+    private fun onWriteFailed(error: ResponseState.Error) {
+        writeStarted = false
+        emit(error.message)
     }
 
     private fun emit(message: String) {

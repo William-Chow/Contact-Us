@@ -8,6 +8,7 @@ import com.kotlin.mvvm.contact.Utils
 import com.kotlin.mvvm.contact.data.ContactRepository
 import com.kotlin.mvvm.contact.model.Contact
 import com.kotlin.mvvm.contact.network.ResponseState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,13 +18,17 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class ContactViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = ContactRepository(application)
+// The single-argument constructor is what ViewModelProvider calls; tests pass a repository
+// backed by an in-memory database.
+class ContactViewModel @JvmOverloads constructor(
+    application: Application,
+    private val repository: ContactRepository = ContactRepository(application)
+) : AndroidViewModel(application) {
 
     // Backed by Room, so a save or delete on the edit screen shows up here without a manual refresh.
-    val contacts: StateFlow<List<Contact>> = repository.observeContacts()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    // Null until Room's first emission, so "not loaded yet" isn't mistaken for "no contacts".
+    val contacts: StateFlow<List<Contact>?> = repository.observeContacts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -41,6 +46,10 @@ class ContactViewModel(application: Application) : AndroidViewModel(application)
 
     private var loaded = false
 
+    // Sync and sample import both write to Room and drive the one spinner, so only one runs at a
+    // time; taps while one is running are ignored rather than queued.
+    private var work: Job? = null
+
     /** First launch on an empty database pulls the directory once; later launches read from Room. */
     fun loadInitial() {
         if (loaded) return
@@ -53,12 +62,13 @@ class ContactViewModel(application: Application) : AndroidViewModel(application)
     fun onSyncClick() = sync(announce = true)
 
     private fun sync(announce: Boolean) {
+        if (work?.isActive == true) return
         if (!Utils.checkInternetConnection(getApplication())) {
             if (announce) emit(getString(R.string.internet_connection_issues))
             return
         }
         _isLoading.value = true
-        viewModelScope.launch {
+        work = viewModelScope.launch {
             when (val response = repository.syncFromRemote()) {
                 is ResponseState.Success -> if (announce) emit(importMessage(response.data))
                 is ResponseState.Error ->
@@ -69,9 +79,13 @@ class ContactViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun importSampleData() {
+        if (work?.isActive == true) return
         _isLoading.value = true
-        viewModelScope.launch {
-            emit(importMessage(repository.importSampleData()))
+        work = viewModelScope.launch {
+            when (val result = repository.importSampleData()) {
+                is ResponseState.Success -> emit(importMessage(result.data))
+                is ResponseState.Error -> emit(result.message)
+            }
             _isLoading.value = false
         }
     }

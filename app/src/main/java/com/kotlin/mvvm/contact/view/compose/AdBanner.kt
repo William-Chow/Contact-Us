@@ -2,6 +2,8 @@ package com.kotlin.mvvm.contact.view.compose
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -15,9 +17,11 @@ import com.kotlin.mvvm.contact.ads.ConsentManager
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val consent by ConsentManager.state.collectAsState()
 
-    // Nothing may be requested until UMP says consent allows it.
-    if (!ConsentManager.canRequestAds(context)) return
+    // Nothing may be requested until UMP says consent allows it. Observed rather than read once,
+    // so a banner composed before consent settled (e.g. the splash was skipped) appears once it has.
+    if (!consent.canRequestAds) return
 
     val adView = remember {
         AdView(context).apply {

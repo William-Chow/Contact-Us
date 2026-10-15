@@ -56,12 +56,13 @@ class SplashActivity : AppCompatActivity() {
             }
         }
 
-        // Guards the consent network round trip only. It is dropped before any form can appear,
-        // because from that point the user sets the pace and must not be navigated away from.
+        // Guards both consent round trips (info update, then form download). It is dropped only as
+        // the form goes up, because from that point the user sets the pace and must not be
+        // navigated away from. If it fires first, ContactActivity gathers consent instead.
         handler.postDelayed(phaseTimeout, CONSENT_TIMEOUT_MS)
         ConsentManager.gather(
             activity = this,
-            onFormMayShow = { handler.removeCallbacks(phaseTimeout) },
+            onFormShowing = { handler.removeCallbacks(phaseTimeout) },
             onReady = onReady@{ canRequestAds ->
                 handler.removeCallbacks(phaseTimeout)
                 if (navigated.get() || isFinishing || isDestroyed) return@onReady
