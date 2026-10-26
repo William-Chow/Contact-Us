@@ -6,7 +6,6 @@
     <string name="admob_app_open_ad_unit_id">ca-app-pub-4541063798492496/9654888656</string>
     <string name="admob_banner_ad_unit_id">ca-app-pub-4541063798492496/3093349734</string>
 
-    <string name="internet_connection_issues">Internet Connection no found. Try again later.</string>
     <string name="splash_activity_text" translatable="false">CONTACT US</string>
 
     <!-- Contact list -->
@@ -16,19 +15,12 @@
         <item quantity="one">%1$d contact</item>
         <item quantity="other">%1$d contacts</item>
     </plurals>
-    <string name="cd_backup">Backup</string>
-    <string name="cd_sync">Sync</string>
     <string name="cd_privacy_options">Privacy options</string>
     <string name="new_contact_fab">New contact</string>
     <string name="empty_contacts">No contacts</string>
     <string name="empty_contacts_hint">Contacts you add will appear here.</string>
     <string name="empty_contacts_cta">Add contact</string>
     <string name="no_results">No results</string>
-    <plurals name="import_added">
-        <item quantity="one">%1$d contact added</item>
-        <item quantity="other">%1$d contacts added</item>
-    </plurals>
-    <string name="import_up_to_date">Already up to date</string>
     <string name="storage_error">Couldn\'t update contacts on this device. Try again.</string>
 
     <!-- Edit contact -->

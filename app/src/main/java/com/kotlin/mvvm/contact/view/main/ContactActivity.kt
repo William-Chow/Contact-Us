@@ -30,7 +30,6 @@ class ContactActivity : AppCompatActivity() {
             ContactUsTheme {
                 val contacts by viewModel.contacts.collectAsState()
                 val query by viewModel.query.collectAsState()
-                val isLoading by viewModel.isLoading.collectAsState()
                 val snackbarHostState = remember { SnackbarHostState() }
                 val consent by ConsentManager.state.collectAsState()
 
@@ -45,7 +44,6 @@ class ContactActivity : AppCompatActivity() {
                     }
                 }
 
-                LaunchedEffect(Unit) { viewModel.loadInitial() }
                 LaunchedEffect(Unit) {
                     viewModel.events.collect { snackbarHostState.showSnackbar(it) }
                 }
@@ -55,11 +53,8 @@ class ContactActivity : AppCompatActivity() {
                     totalCount = contacts?.size ?: 0,
                     hasLoaded = contacts != null,
                     searchQuery = query,
-                    isLoading = isLoading,
                     snackbarHostState = snackbarHostState,
                     onSearchChange = viewModel::onQueryChange,
-                    onSyncClick = { viewModel.onSyncClick() },
-                    onBackupClick = { viewModel.importSampleData() },
                     onAddClick = { openEdit(null) },
                     onContactClick = { contact -> openEdit(contact.id) },
                     showPrivacyOptions = consent.privacyOptionsRequired,

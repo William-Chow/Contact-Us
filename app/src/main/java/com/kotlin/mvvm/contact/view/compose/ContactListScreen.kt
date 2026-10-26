@@ -21,14 +21,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -61,11 +58,8 @@ fun ContactListScreen(
     totalCount: Int,
     hasLoaded: Boolean,
     searchQuery: String,
-    isLoading: Boolean,
     snackbarHostState: SnackbarHostState,
     onSearchChange: (String) -> Unit,
-    onSyncClick: () -> Unit,
-    onBackupClick: () -> Unit,
     onAddClick: () -> Unit,
     onContactClick: (Contact) -> Unit,
     showPrivacyOptions: Boolean,
@@ -78,8 +72,6 @@ fun ContactListScreen(
                 totalCount = totalCount,
                 searchQuery = searchQuery,
                 onSearchChange = onSearchChange,
-                onSyncClick = onSyncClick,
-                onBackupClick = onBackupClick,
                 showPrivacyOptions = showPrivacyOptions,
                 onPrivacyOptionsClick = onPrivacyOptionsClick
             )
@@ -94,11 +86,15 @@ fun ContactListScreen(
             )
         },
         bottomBar = {
-            AdBanner(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-            )
+            // No banner over the empty state: an ad on a screen with none of the user's content is
+            // exactly what AdMob reviewers flag, and a new install starts with no contacts.
+            if (totalCount > 0) {
+                AdBanner(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                )
+            }
         }
     ) { padding ->
         Box(
@@ -125,7 +121,7 @@ fun ContactListScreen(
 
                 // Before Room's first emission there is nothing to say yet: showing "No contacts"
                 // would flash on every launch for users who have some.
-                !hasLoaded || isLoading -> Unit
+                !hasLoaded -> Unit
 
                 totalCount == 0 -> EmptyContacts(
                     onAddClick = onAddClick,
@@ -139,13 +135,6 @@ fun ContactListScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
-
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
         }
     }
 }
@@ -155,8 +144,6 @@ private fun ContactListHeader(
     totalCount: Int,
     searchQuery: String,
     onSearchChange: (String) -> Unit,
-    onSyncClick: () -> Unit,
-    onBackupClick: () -> Unit,
     showPrivacyOptions: Boolean,
     onPrivacyOptionsClick: () -> Unit
 ) {
@@ -189,16 +176,6 @@ private fun ContactListHeader(
                     )
                 }
             }
-            HeaderAction(
-                icon = Icons.AutoMirrored.Filled.List,
-                contentDescription = stringResource(R.string.cd_backup),
-                onClick = onBackupClick
-            )
-            HeaderAction(
-                icon = Icons.Default.Refresh,
-                contentDescription = stringResource(R.string.cd_sync),
-                onClick = onSyncClick
-            )
             // Only shown where UMP reports the user must be able to revisit their consent choice.
             if (showPrivacyOptions) {
                 HeaderAction(

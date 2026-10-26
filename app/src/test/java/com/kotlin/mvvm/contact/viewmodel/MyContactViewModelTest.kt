@@ -40,7 +40,7 @@ class MyContactViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         db = inMemoryDatabase(app, dispatcher)
-        viewModel = MyContactViewModel(app, ContactRepository(app, db.contactDao(), dispatcher))
+        viewModel = MyContactViewModel(app, ContactRepository(app, db.contactDao()))
     }
 
     @After

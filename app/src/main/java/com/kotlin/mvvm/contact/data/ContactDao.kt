@@ -24,8 +24,9 @@ interface ContactDao {
     suspend fun upsert(contact: ContactEntity)
 
     /**
-     * Used by sync/import: rows already on the device are kept, so local edits are never clobbered,
-     * and ids the user deleted are skipped, so deletions stick. Returns how many rows were added.
+     * For bulk imports (none ship today: the mock sync and sample import were removed). Rows already
+     * on the device are kept, so local edits are never clobbered, and ids the user deleted are
+     * skipped, so deletions stick. Returns how many rows were added.
      */
     @Transaction
     suspend fun insertMissing(contacts: List<ContactEntity>): Int {

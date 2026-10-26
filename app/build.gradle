@@ -55,7 +55,7 @@ android {
         compose = true
     }
     testOptions {
-        // Robolectric tests read strings and the bundled data.json
+        // Robolectric tests read string resources
         unitTests.includeAndroidResources = true
     }
 }
@@ -90,11 +90,6 @@ dependencies {
     // Admob
     implementation libs.play.services.ads
     implementation libs.user.messaging.platform
-    //Gson
-    implementation libs.gson
-    // retrofit
-    implementation libs.retrofit
-    implementation libs.converter.gson
     // Coroutines
     implementation libs.kotlinx.coroutines.android
     implementation libs.kotlinx.coroutines.core
