@@ -36,9 +36,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- stateAlwaysHidden: coming back from the edit screen must not leave its keyboard up over
+             the list (it hid the New contact button and the banner). Tapping search still opens it. -->
         <activity
             android:name=".view.main.ContactActivity"
             android:exported="true"
+            android:windowSoftInputMode="stateAlwaysHidden"
             tools:ignore="LockedOrientationActivity" />
         <activity
             android:name=".view.main.MyContactActivity"
