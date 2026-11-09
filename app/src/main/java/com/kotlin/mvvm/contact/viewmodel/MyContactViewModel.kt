@@ -1,6 +1,7 @@
 package com.kotlin.mvvm.contact.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kotlin.mvvm.contact.R
@@ -79,6 +80,31 @@ class MyContactViewModel @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Fills the form from a number picked in the phone's contact picker. Fields the picker didn't
+     * provide (often the email) keep whatever the user already typed.
+     */
+    fun fillFromPhoneContact(phoneUri: Uri) {
+        viewModelScope.launch {
+            when (val result = repository.readPickedPhoneContact(phoneUri)) {
+                is ResponseState.Success -> {
+                    val picked = result.data
+                    if (picked == null) {
+                        emit(getString(R.string.pick_contact_failed))
+                    } else {
+                        _form.value = _form.value.copy(
+                            firstName = picked.firstName,
+                            lastName = picked.lastName,
+                            phone = picked.phone ?: _form.value.phone,
+                            email = picked.email ?: _form.value.email
+                        )
+                    }
+                }
+                is ResponseState.Error -> emit(getString(R.string.pick_contact_failed))
+            }
+        }
+    }
+
     fun onFirstNameChange(value: String) { _form.value = _form.value.copy(firstName = value) }
     fun onLastNameChange(value: String) { _form.value = _form.value.copy(lastName = value) }
     fun onEmailChange(value: String) { _form.value = _form.value.copy(email = value) }
@@ -88,8 +114,9 @@ class MyContactViewModel @JvmOverloads constructor(
         if (writeStarted) return
         val form = _form.value
         when {
-            form.firstName.isBlank() -> emit(getString(R.string.contact_first_name_empty))
-            form.lastName.isBlank() -> emit(getString(R.string.contact_last_name_empty))
+            // Either name is enough: many phone contacts, and most Chinese names, are one word.
+            form.firstName.isBlank() && form.lastName.isBlank() ->
+                emit(getString(R.string.contact_name_empty))
             form.email.isNotBlank() && !Utils.isEmail(form.email.trim()) ->
                 emit(getString(R.string.contact_email_invalid))
             else -> persist(form)

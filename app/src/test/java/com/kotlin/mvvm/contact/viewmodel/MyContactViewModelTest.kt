@@ -94,4 +94,24 @@ class MyContactViewModelTest {
         assertEquals(listOf(UiEvent.Message(app.getString(R.string.storage_error))), events)
         assertFalse(viewModel.isLoading.value)
     }
+
+    @Test
+    fun aSingleNameIsEnoughButANamelessContactIsRefused() = runTest(dispatcher) {
+        val events = mutableListOf<UiEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.events.toList(events)
+        }
+        viewModel.start(null)
+
+        viewModel.onPhoneChange("555-0100")
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals(listOf(UiEvent.Message(app.getString(R.string.contact_name_empty))), events)
+        assertEquals(0, db.contactDao().count())
+
+        viewModel.onFirstNameChange("陈伟明")
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals("陈伟明", db.contactDao().getAll().single().firstName)
+    }
 }

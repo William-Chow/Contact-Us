@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import com.kotlin.mvvm.contact.model.ContactNames
 
 /** Circular avatar that shows the contact's initials over the brand color. */
 @Composable
@@ -22,10 +23,7 @@ fun ContactAvatar(
     size: Dp,
     modifier: Modifier = Modifier
 ) {
-    val initials = buildString {
-        firstName.trim().firstOrNull()?.let { append(it.uppercaseChar()) }
-        lastName.trim().firstOrNull()?.let { append(it.uppercaseChar()) }
-    }
+    val initials = ContactNames.initials(firstName, lastName)
     Box(
         modifier = modifier
             .size(size)

@@ -21,6 +21,33 @@
     <string name="empty_contacts_hint">Contacts you add will appear here.</string>
     <string name="empty_contacts_cta">Add contact</string>
     <string name="no_results">No results</string>
+    <string name="cd_more_options">More options</string>
+    <string name="menu_import_phone">Import phone contacts</string>
+    <string name="menu_export_backup">Export backup</string>
+    <string name="menu_restore_backup">Restore from backup</string>
+    <string name="empty_contacts_import">Import from phone contacts</string>
+    <string name="import_disclosure_title">Import phone contacts?</string>
+    <string name="import_disclosure_body">Contact Us will read the contacts saved on this phone and copy their names, phone numbers and email addresses into this app. They stay on this device and are never uploaded.</string>
+    <string name="import_disclosure_continue">Continue</string>
+    <string name="not_now">Not now</string>
+    <string name="import_permission_denied">Contacts access wasn\'t allowed, so nothing was imported. You can allow it in Settings.</string>
+    <plurals name="import_added">
+        <item quantity="one">%1$d contact imported</item>
+        <item quantity="other">%1$d contacts imported</item>
+    </plurals>
+    <string name="import_up_to_date">Already up to date</string>
+    <plurals name="backup_exported">
+        <item quantity="one">Backup saved (%1$d contact)</item>
+        <item quantity="other">Backup saved (%1$d contacts)</item>
+    </plurals>
+    <string name="backup_exported_empty">Backup saved (no contacts)</string>
+    <string name="export_failed">Couldn\'t save the backup. Try again.</string>
+    <plurals name="restore_added">
+        <item quantity="one">%1$d contact restored</item>
+        <item quantity="other">%1$d contacts restored</item>
+    </plurals>
+    <string name="restore_invalid">This file isn\'t a Contact Us backup.</string>
+    <string name="restore_read_failed">Couldn\'t read that file.</string>
     <string name="storage_error">Couldn\'t update contacts on this device. Try again.</string>
 
     <!-- Edit contact -->
@@ -35,10 +62,15 @@
     <string name="email">Email</string>
     <string name="phone">Phone</string>
     <string name="last_name">Last Name</string>
+    <string name="fill_from_contacts">Fill from phone contacts</string>
+    <string name="pick_contact_failed">Couldn\'t read that contact.</string>
+    <string name="action_call">Call</string>
+    <string name="action_message">Message</string>
+    <string name="action_email">Email</string>
+    <string name="no_app_for_action">No app on this phone can do that.</string>
     <string name="skip"><![CDATA[Skip >>>]]></string>
 
-    <string name="contact_first_name_empty">First Name cannot be Empty.</string>
-    <string name="contact_last_name_empty">Last Name cannot be Empty.</string>
+    <string name="contact_name_empty">Enter a first or last name.</string>
     <string name="contact_email_invalid">Email is invalid.</string>
     <string name="contact_update_success">Contact updated.</string>
     <string name="contact_added_success">Contact added.</string>

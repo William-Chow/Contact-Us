@@ -1,15 +1,19 @@
 package com.kotlin.mvvm.contact.view.compose
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,13 +25,17 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -58,14 +67,18 @@ fun EditContactScreen(
     email: String,
     phone: String,
     isLoading: Boolean,
-    canDelete: Boolean,
+    isExisting: Boolean,
     onFirstNameChange: (String) -> Unit,
     onLastNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onCancelClick: () -> Unit,
     onSaveClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onFillFromContactsClick: () -> Unit,
+    onCallClick: () -> Unit,
+    onMessageClick: () -> Unit,
+    onEmailClick: () -> Unit
 ) {
     // Saveable so the confirmation survives rotation instead of silently disappearing.
     var confirmingDelete by rememberSaveable { mutableStateOf(false) }
@@ -90,6 +103,10 @@ fun EditContactScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                // Edge-to-edge windows aren't resized for the keyboard, so make room for it here
+                // or the lower fields end up hidden behind it.
+                .consumeWindowInsets(padding)
+                .imePadding()
         ) {
             Column(
                 modifier = Modifier
@@ -104,6 +121,39 @@ fun EditContactScreen(
                         .padding(top = 24.dp)
                         .align(Alignment.CenterHorizontally)
                 )
+
+                if (isExisting) {
+                    ContactActions(
+                        hasPhone = phone.isNotBlank(),
+                        hasEmail = email.isNotBlank(),
+                        onCallClick = onCallClick,
+                        onMessageClick = onMessageClick,
+                        onEmailClick = onEmailClick,
+                        modifier = Modifier
+                            .padding(top = 16.dp)
+                            .align(Alignment.CenterHorizontally)
+                    )
+                } else {
+                    TextButton(
+                        onClick = onFillFromContactsClick,
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .align(Alignment.CenterHorizontally)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.fill_from_contacts),
+                            color = MaterialTheme.colorScheme.tertiary,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
 
                 SectionHeader(stringResource(R.string.main_information))
                 GroupedCard {
@@ -155,7 +205,7 @@ fun EditContactScreen(
                     )
                 }
 
-                if (canDelete) {
+                if (isExisting) {
                     Spacer(modifier = Modifier.height(28.dp))
                     GroupedCard {
                         TextButton(
@@ -249,6 +299,60 @@ private fun EditContactHeader(title: String, onCancelClick: () -> Unit, onSaveCl
             }
         }
         HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+/** Call, message and email shortcuts; each is disabled while its field is empty. */
+@Composable
+private fun ContactActions(
+    hasPhone: Boolean,
+    hasEmail: Boolean,
+    onCallClick: () -> Unit,
+    onMessageClick: () -> Unit,
+    onEmailClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+        ContactActionButton(Icons.Default.Call, R.string.action_call, hasPhone, onCallClick)
+        ContactActionButton(
+            Icons.AutoMirrored.Filled.Send,
+            R.string.action_message,
+            hasPhone,
+            onMessageClick
+        )
+        ContactActionButton(Icons.Default.Email, R.string.action_email, hasEmail, onEmailClick)
+    }
+}
+
+@Composable
+private fun ContactActionButton(
+    icon: ImageVector,
+    @StringRes label: Int,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val text = stringResource(label)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        FilledTonalIconButton(
+            onClick = onClick,
+            enabled = enabled,
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(imageVector = icon, contentDescription = text, modifier = Modifier.size(22.dp))
+        }
+        Text(
+            text = text,
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .clearAndSetSemantics {},
+            color = if (enabled) MaterialTheme.colorScheme.onSurface
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelMedium
+        )
     }
 }
 

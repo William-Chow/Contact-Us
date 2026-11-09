@@ -9,18 +9,15 @@
         <item name="colorSecondary">@color/teal_200</item>
         <item name="colorSecondaryVariant">@color/teal_700</item>
         <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar matches the white app header (Quiet Native). -->
-        <item name="android:statusBarColor">@color/white</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <!-- System bars are transparent: each activity calls enableEdgeToEdge(), which also
+             picks the bar icon colours, instead of the deprecated android:statusBarColor. -->
         <!-- Customize your theme here. -->
     </style>
 
     <!-- SplashActivity theme. -->
     <style name="SplashTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:colorBackground">#D4EBF2</item>
-        <!-- Splash background stays light in both modes, so keep dark status bar icons.
-             android:statusBarColor is ignored from API 35, so this controls the contrast. -->
-        <item name="android:windowLightStatusBar">true</item>
+        <!-- Bar icon colours are set in SplashActivity (enableEdgeToEdge with light bars). -->
     </style>
 
     <style name="circleImageView" parent="">

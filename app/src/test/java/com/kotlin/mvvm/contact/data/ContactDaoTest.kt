@@ -62,4 +62,20 @@ class ContactDaoTest {
         assertEquals(1, dao.count())
         assertEquals("Grace", dao.getById("1")?.firstName)
     }
+
+    @Test
+    fun restoreBringsBackDeletedContactsButLeavesExistingOnesAlone() = runTest(dispatcher) {
+        dao.upsert(contactEntity("kept", firstName = "Edited"))
+        dao.upsert(contactEntity("gone"))
+        dao.deleteAndRemember("gone")
+
+        val added = dao.restore(
+            listOf(contactEntity("kept", firstName = "FromBackup"), contactEntity("gone"))
+        )
+
+        assertEquals(1, added)
+        assertEquals("Edited", dao.getById("kept")?.firstName)
+        assertEquals("First gone", dao.getById("gone")?.firstName)
+        assertEquals(emptyList<String>(), dao.deletedIds())
+    }
 }

@@ -20,18 +20,33 @@ interface ContactDao {
     @Query("SELECT COUNT(*) FROM contacts")
     suspend fun count(): Int
 
+    @Query("SELECT * FROM contacts ORDER BY firstName COLLATE NOCASE, lastName COLLATE NOCASE")
+    suspend fun getAll(): List<ContactEntity>
+
     @Upsert
     suspend fun upsert(contact: ContactEntity)
 
     /**
-     * For bulk imports (none ship today: the mock sync and sample import were removed). Rows already
-     * on the device are kept, so local edits are never clobbered, and ids the user deleted are
-     * skipped, so deletions stick. Returns how many rows were added.
+     * For importing phone contacts. Rows already on the device are kept, so local edits are never
+     * clobbered, and ids the user deleted are skipped, so a re-import doesn't bring them back.
+     * Returns how many rows were added.
      */
     @Transaction
     suspend fun insertMissing(contacts: List<ContactEntity>): Int {
         val deleted = deletedIds().toSet()
         return insertIgnoringExisting(contacts.filterNot { it.id in deleted }).count { it != -1L }
+    }
+
+    /**
+     * For restoring a backup the user chose. Unlike [insertMissing], contacts they deleted come
+     * back (that is the point of restoring); rows already on the device are still left untouched.
+     * Returns how many rows were added.
+     */
+    @Transaction
+    suspend fun restore(contacts: List<ContactEntity>): Int {
+        // Chunked to stay under SQLite's bound-parameter limit on older Android versions.
+        contacts.map { it.id }.chunked(500).forEach { forgetDeleted(it) }
+        return insertIgnoringExisting(contacts).count { it != -1L }
     }
 
     /** Removes the contact and remembers its id, so a later sync or import cannot bring it back. */
@@ -49,6 +64,9 @@ interface ContactDao {
 
     @Query("SELECT id FROM deleted_contacts")
     suspend fun deletedIds(): List<String>
+
+    @Query("DELETE FROM deleted_contacts WHERE id IN (:ids)")
+    suspend fun forgetDeleted(ids: List<String>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDeleted(deleted: DeletedContactEntity)

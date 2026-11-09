@@ -2,10 +2,13 @@ package com.kotlin.mvvm.contact.view.main
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -33,6 +36,7 @@ import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.appopen.AppOpenAd
 import com.kotlin.mvvm.contact.R
+import com.kotlin.mvvm.contact.ads.AppOpenAdGate
 import com.kotlin.mvvm.contact.ads.ConsentManager
 import com.kotlin.mvvm.contact.view.compose.ContactUsTheme
 import java.util.concurrent.atomic.AtomicBoolean
@@ -48,6 +52,11 @@ class SplashActivity : AppCompatActivity() {
     private val phaseTimeout = Runnable { startMainActivity() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The splash background is light in both themes, so the bar icons stay dark.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+        )
         super.onCreate(savedInstanceState)
 
         setContent {
@@ -66,11 +75,12 @@ class SplashActivity : AppCompatActivity() {
             onReady = onReady@{ canRequestAds ->
                 handler.removeCallbacks(phaseTimeout)
                 if (navigated.get() || isFinishing || isDestroyed) return@onReady
-                if (canRequestAds) {
+                if (canRequestAds && AppOpenAdGate(this).shouldShowNow()) {
                     handler.postDelayed(phaseTimeout, AD_TIMEOUT_MS)
                     loadAppOpenAd()
                 } else {
-                    // Consent withheld: no ad to wait for, so go straight in.
+                    // Consent withheld, first launch, or an ad was shown recently: no ad to wait
+                    // for, so go straight in.
                     startMainActivity()
                 }
             }
@@ -94,6 +104,10 @@ class SplashActivity : AppCompatActivity() {
                     handler.removeCallbacks(phaseTimeout)
 
                     appOpenAd.fullScreenContentCallback = object : FullScreenContentCallback() {
+                        override fun onAdShowedFullScreenContent() {
+                            AppOpenAdGate(this@SplashActivity).recordShown()
+                        }
+
                         override fun onAdDismissedFullScreenContent() {
                             startMainActivity()
                         }

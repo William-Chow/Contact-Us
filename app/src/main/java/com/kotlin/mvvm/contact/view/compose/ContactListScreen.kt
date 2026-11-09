@@ -22,10 +22,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -36,7 +41,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.model.Contact
+import com.kotlin.mvvm.contact.model.ContactNames
 
 @Composable
 fun ContactListScreen(
@@ -58,10 +69,14 @@ fun ContactListScreen(
     totalCount: Int,
     hasLoaded: Boolean,
     searchQuery: String,
+    isBusy: Boolean,
     snackbarHostState: SnackbarHostState,
     onSearchChange: (String) -> Unit,
     onAddClick: () -> Unit,
     onContactClick: (Contact) -> Unit,
+    onImportClick: () -> Unit,
+    onExportClick: () -> Unit,
+    onRestoreClick: () -> Unit,
     showPrivacyOptions: Boolean,
     onPrivacyOptionsClick: () -> Unit
 ) {
@@ -72,6 +87,9 @@ fun ContactListScreen(
                 totalCount = totalCount,
                 searchQuery = searchQuery,
                 onSearchChange = onSearchChange,
+                onImportClick = onImportClick,
+                onExportClick = onExportClick,
+                onRestoreClick = onRestoreClick,
                 showPrivacyOptions = showPrivacyOptions,
                 onPrivacyOptionsClick = onPrivacyOptionsClick
             )
@@ -125,6 +143,7 @@ fun ContactListScreen(
 
                 totalCount == 0 -> EmptyContacts(
                     onAddClick = onAddClick,
+                    onImportClick = onImportClick,
                     modifier = Modifier.align(Alignment.Center)
                 )
 
@@ -135,8 +154,44 @@ fun ContactListScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
+
+            if (isBusy) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
+}
+
+/**
+ * Shown before the READ_CONTACTS permission prompt: what is read, and that it stays on the phone.
+ * Play's user-data policy expects this disclosure ahead of the system dialog.
+ */
+@Composable
+fun ImportContactsDisclosure(onContinue: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.import_disclosure_title)) },
+        text = { Text(stringResource(R.string.import_disclosure_body)) },
+        confirmButton = {
+            TextButton(onClick = onContinue) {
+                Text(
+                    text = stringResource(R.string.import_disclosure_continue),
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.not_now),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -144,9 +199,13 @@ private fun ContactListHeader(
     totalCount: Int,
     searchQuery: String,
     onSearchChange: (String) -> Unit,
+    onImportClick: () -> Unit,
+    onExportClick: () -> Unit,
+    onRestoreClick: () -> Unit,
     showPrivacyOptions: Boolean,
     onPrivacyOptionsClick: () -> Unit
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -183,6 +242,37 @@ private fun ContactListHeader(
                     contentDescription = stringResource(R.string.cd_privacy_options),
                     onClick = onPrivacyOptionsClick
                 )
+            }
+            Box {
+                HeaderAction(
+                    icon = Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.cd_more_options),
+                    onClick = { menuOpen = true }
+                )
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.menu_import_phone)) },
+                        onClick = {
+                            menuOpen = false
+                            onImportClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.menu_export_backup)) },
+                        enabled = totalCount > 0,
+                        onClick = {
+                            menuOpen = false
+                            onExportClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.menu_restore_backup)) },
+                        onClick = {
+                            menuOpen = false
+                            onRestoreClick()
+                        }
+                    )
+                }
             }
         }
         SearchField(
@@ -271,7 +361,7 @@ private fun ContactRow(contact: Contact, onClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = "${contact.firstName} ${contact.lastName}",
+            text = ContactNames.displayName(contact.firstName, contact.lastName),
             color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.bodyLarge,
             maxLines = 1,
@@ -281,7 +371,11 @@ private fun ContactRow(contact: Contact, onClick: () -> Unit) {
 }
 
 @Composable
-private fun EmptyContacts(onAddClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyContacts(
+    onAddClick: () -> Unit,
+    onImportClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -324,6 +418,12 @@ private fun EmptyContacts(onAddClick: () -> Unit, modifier: Modifier = Modifier)
             )
         ) {
             Text(stringResource(R.string.empty_contacts_cta))
+        }
+        TextButton(onClick = onImportClick) {
+            Text(
+                text = stringResource(R.string.empty_contacts_import),
+                color = MaterialTheme.colorScheme.tertiary
+            )
         }
     }
 }
