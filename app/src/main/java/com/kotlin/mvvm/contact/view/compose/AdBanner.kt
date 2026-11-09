@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -17,6 +18,7 @@ import com.kotlin.mvvm.contact.ads.ConsentManager
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val adUnitId = stringResource(R.string.admob_banner_ad_unit_id)
     val consent by ConsentManager.state.collectAsState()
 
     // Nothing may be requested until UMP says consent allows it. Observed rather than read once,
@@ -26,7 +28,7 @@ fun AdBanner(modifier: Modifier = Modifier) {
     val adView = remember {
         AdView(context).apply {
             setAdSize(AdSize.BANNER)
-            adUnitId = context.getString(R.string.admob_banner_ad_unit_id)
+            this.adUnitId = adUnitId
             loadAd(AdRequest.Builder().build())
         }
     }

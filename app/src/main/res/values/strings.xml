@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Contact Us</string>
+    <string name="app_name" translatable="false">Contact Us</string>
 
     <!-- Admob -->
     <string name="admob_unit_id">ca-app-pub-4541063798492496~6134709371</string>
@@ -25,6 +25,9 @@
     <string name="menu_import_phone">Import phone contacts</string>
     <string name="menu_export_backup">Export backup</string>
     <string name="menu_restore_backup">Restore from backup</string>
+    <string name="menu_privacy_policy">Privacy policy</string>
+    <!-- Same page as the privacy policy URL in Play Console; PRIVACY.md at the repo root. -->
+    <string name="privacy_policy_url" translatable="false">https://github.com/William-Chow/Contact-Us/blob/main/PRIVACY.md</string>
     <string name="empty_contacts_import">Import from phone contacts</string>
     <string name="import_disclosure_title">Import phone contacts?</string>
     <string name="import_disclosure_body">Contact Us will read the contacts saved on this phone and copy their names, phone numbers and email addresses into this app. They stay on this device and are never uploaded.</string>

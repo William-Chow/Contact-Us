@@ -77,6 +77,7 @@ fun ContactListScreen(
     onImportClick: () -> Unit,
     onExportClick: () -> Unit,
     onRestoreClick: () -> Unit,
+    onPrivacyPolicyClick: () -> Unit,
     showPrivacyOptions: Boolean,
     onPrivacyOptionsClick: () -> Unit
 ) {
@@ -90,6 +91,7 @@ fun ContactListScreen(
                 onImportClick = onImportClick,
                 onExportClick = onExportClick,
                 onRestoreClick = onRestoreClick,
+                onPrivacyPolicyClick = onPrivacyPolicyClick,
                 showPrivacyOptions = showPrivacyOptions,
                 onPrivacyOptionsClick = onPrivacyOptionsClick
             )
@@ -202,6 +204,7 @@ private fun ContactListHeader(
     onImportClick: () -> Unit,
     onExportClick: () -> Unit,
     onRestoreClick: () -> Unit,
+    onPrivacyPolicyClick: () -> Unit,
     showPrivacyOptions: Boolean,
     onPrivacyOptionsClick: () -> Unit
 ) {
@@ -270,6 +273,16 @@ private fun ContactListHeader(
                         onClick = {
                             menuOpen = false
                             onRestoreClick()
+                        }
+                    )
+                    // Play's user-data policy wants the privacy policy reachable inside the app,
+                    // not only from the store listing.
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.menu_privacy_policy)) },
+                        onClick = {
+                            menuOpen = false
+                            onPrivacyPolicyClick()
                         }
                     )
                 }

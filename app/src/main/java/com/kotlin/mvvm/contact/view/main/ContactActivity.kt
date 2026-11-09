@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
 import com.kotlin.mvvm.contact.R
 import com.kotlin.mvvm.contact.Utils
@@ -99,10 +100,17 @@ class ContactActivity : AppCompatActivity() {
                         else showImportDisclosure = true
                     },
                     onExportClick = {
-                        launchFilePicker { exportFile.launch("contact-us-backup-${LocalDate.now()}.json") }
+                        startOrExplain { exportFile.launch("contact-us-backup-${LocalDate.now()}.json") }
                     },
                     onRestoreClick = {
-                        launchFilePicker { restoreFile.launch(RESTORE_MIME_TYPES) }
+                        startOrExplain { restoreFile.launch(RESTORE_MIME_TYPES) }
+                    },
+                    onPrivacyPolicyClick = {
+                        startOrExplain {
+                            startActivity(
+                                Intent(Intent.ACTION_VIEW, getString(R.string.privacy_policy_url).toUri())
+                            )
+                        }
                     },
                     showPrivacyOptions = consent.privacyOptionsRequired,
                     onPrivacyOptionsClick = {
@@ -133,8 +141,8 @@ class ContactActivity : AppCompatActivity() {
         ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) ==
             PackageManager.PERMISSION_GRANTED
 
-    /** Some stripped-down phones ship without a document picker. */
-    private fun launchFilePicker(launch: () -> Unit) {
+    /** Some stripped-down phones ship without a document picker or a browser. */
+    private fun startOrExplain(launch: () -> Unit) {
         try {
             launch()
         } catch (e: ActivityNotFoundException) {
